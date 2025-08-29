@@ -7,18 +7,28 @@
     "start": "node src/index.js",
     "start:gui": "node src/index.js --gui",
     "start:cli": "node src/index.js",
+    "start:multiplayer": "node -e \"const {HexMultiplayerServer} = require('./src/HexMultiplayer'); new HexMultiplayerServer(3001).start();\"",
+    "demo": "node demo_features.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },
-  "keywords": ["hex", "game", "board-game", "strategy", "ai"],
+  "keywords": [
+    "hex",
+    "game",
+    "board-game",
+    "strategy",
+    "ai"
+  ],
   "author": "AlexShadow3",
   "license": "MIT",
   "devDependencies": {
     "jest": "^29.0.0"
   },
   "dependencies": {
-    "readline-sync": "^1.4.10"
+    "readline-sync": "^1.4.10",
+    "socket.io": "^4.8.1",
+    "ws": "^8.18.3"
   },
   "jest": {
     "testEnvironment": "node",

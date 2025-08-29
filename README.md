@@ -130,7 +130,7 @@ npm run test:coverage
 
 ## 🤖 AI Implementation
 
-The AI player includes two difficulty levels:
+The AI player includes three difficulty levels:
 
 ### Easy Mode
 - Makes random valid moves
@@ -141,6 +141,12 @@ The AI player includes two difficulty levels:
 - Attempts to block opponent's winning moves
 - Makes strategic moves toward game objectives
 - Prefers center positions for better board control
+
+### Hard Mode ⭐ **NEW!**
+- Uses minimax algorithm with alpha-beta pruning
+- Evaluates positions based on connectivity and strategic value
+- Adaptive search depth based on game complexity
+- Provides challenging gameplay for experienced players
 
 ## 🎨 Board Visualization
 
@@ -221,15 +227,54 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🎯 Future Enhancements
 
 - [x] ~~Web-based UI interface~~ ✅ **COMPLETED!**
-- [ ] Online multiplayer support
-- [ ] Advanced AI with minimax algorithm
-- [ ] Game replay and analysis
-- [ ] Tournament mode
-- [ ] Custom board shapes
-- [ ] Move hints and analysis
+- [x] ~~Online multiplayer support~~ ✅ **COMPLETED!**
+- [x] ~~Advanced AI with minimax algorithm~~ ✅ **COMPLETED!**
+- [x] ~~Game replay and analysis~~ ✅ **COMPLETED!**
+- [x] ~~Tournament mode~~ ✅ **COMPLETED!**
+- [x] ~~Custom board shapes~~ ✅ **COMPLETED!**
+- [x] ~~Move hints and analysis~~ ✅ **COMPLETED!**
 
 ## 🙏 Acknowledgments
 
 - Hex game invented by Piet Hein and independently by John Nash
 - Inspired by classic board game implementations
 - Built with Node.js and Jest for testing
+
+## ⭐ New Features
+
+### 🧠 Advanced AI with Minimax Algorithm
+- **Hard difficulty level** with minimax algorithm and alpha-beta pruning
+- Intelligent position evaluation based on connectivity analysis
+- Adaptive search depth for optimal performance
+- Challenge even experienced Hex players!
+
+### 📊 Game Replay and Analysis
+- **Save and load games** in JSON format with complete state preservation
+- **Step-by-step replay** functionality to review moves
+- **Game analysis** with statistics, move phases, and efficiency metrics
+- Perfect for studying strategies and improving gameplay
+
+### 💡 Move Hints and Analysis
+- **Smart move suggestions** powered by advanced AI
+- **Position analysis** with strength evaluation
+- **Real-time hints** showing best moves with explanations
+- Learn optimal strategies with AI guidance
+
+### 🔷 Custom Board Shapes
+- **Multiple board shapes**: Hexagon, Diamond, Triangle, Parallelogram
+- **Flexible board sizes** from 5x5 to 19x19
+- **Shape-aware game logic** with proper win conditions
+- Explore new strategic possibilities!
+
+### 🏆 Tournament Mode
+- **Round-robin, Single-elimination, and Swiss formats**
+- **Automated tournament management** with bracket generation
+- **AI vs AI tournaments** for performance testing
+- **Detailed standings and statistics** tracking
+
+### 🌐 Online Multiplayer Support
+- **Real-time multiplayer** with WebSocket communication
+- **Matchmaking system** for finding opponents
+- **Spectator mode** to watch games in progress
+- **Lobby system** for custom games and tournaments
+- **Disconnection handling** with game state preservation

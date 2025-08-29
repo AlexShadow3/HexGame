@@ -21,8 +21,9 @@ class HexCell {
  * Represents the hexagonal game board
  */
 class HexBoard {
-    constructor(size = 11) {
+    constructor(size = 11, shape = 'hexagon') {
         this.size = size;
+        this.shape = shape;
         this.board = [];
         this.initializeBoard();
     }
@@ -31,13 +32,43 @@ class HexBoard {
         for (let row = 0; row < this.size; row++) {
             this.board[row] = [];
             for (let col = 0; col < this.size; col++) {
-                this.board[row][col] = new HexCell(row, col);
+                if (this.isCellValidForShape(row, col)) {
+                    this.board[row][col] = new HexCell(row, col);
+                } else {
+                    this.board[row][col] = null; // Invalid cell for this shape
+                }
             }
         }
     }
 
+    /**
+     * Check if a cell is valid for the current board shape
+     */
+    isCellValidForShape(row, col) {
+        switch (this.shape) {
+            case 'hexagon':
+                return true; // All cells valid for standard hexagon
+            case 'diamond':
+                // Diamond shape - remove corners
+                const center = Math.floor(this.size / 2);
+                const distance = Math.abs(row - center) + Math.abs(col - center);
+                return distance <= center;
+            case 'triangle':
+                // Triangle shape - upper triangle
+                return col <= row;
+            case 'parallelogram':
+                // Standard parallelogram (same as hexagon for now)
+                return true;
+            default:
+                return true;
+        }
+    }
+
     isValidPosition(row, col) {
-        return row >= 0 && row < this.size && col >= 0 && col < this.size;
+        if (row < 0 || row >= this.size || col < 0 || col >= this.size) {
+            return false;
+        }
+        return this.isCellValidForShape(row, col) && this.board[row][col] !== null;
     }
 
     getCell(row, col) {

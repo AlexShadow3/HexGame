@@ -63,6 +63,22 @@ class HexGameGUI {
                 this.handleGetGameState(req, res);
             } else if (url === '/api/get-ai-move') {
                 this.handleGetAIMove(req, res);
+            } else if (url === '/api/get-hints') {
+                this.handleGetHints(req, res);
+            } else if (url === '/api/analyze-position') {
+                this.handleAnalyzePosition(req, res);
+            } else if (url === '/api/save-game') {
+                this.handleSaveGame(req, res);
+            } else if (url === '/api/load-game') {
+                this.handleLoadGame(req, res);
+            } else if (url === '/api/create-tournament') {
+                this.handleCreateTournament(req, res);
+            } else {
+                this.send404(res);
+            }
+        } else if (method === 'GET') {
+            if (url === '/api/board-shapes') {
+                this.handleGetBoardShapes(req, res);
             } else {
                 this.send404(res);
             }
@@ -99,9 +115,9 @@ class HexGameGUI {
         req.on('data', chunk => body += chunk);
         req.on('end', () => {
             try {
-                const { boardSize, gameMode } = JSON.parse(body);
+                const { boardSize, gameMode, boardShape } = JSON.parse(body);
                 const gameId = `game_${++this.gameCounter}`;
-                const game = new HexGame(boardSize || 11, gameMode || 'human-vs-human');
+                const game = new HexGame(boardSize || 11, gameMode || 'human-vs-human', boardShape || 'hexagon');
                 this.games.set(gameId, game);
 
                 this.sendJSON(res, {
@@ -235,6 +251,149 @@ class HexGameGUI {
             this.server.close();
             console.log('🛑 Hex Game GUI Server stopped');
         }
+    }
+    
+    /**
+     * Handle move hints request
+     */
+    handleGetHints(req, res) {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const { gameId, count } = JSON.parse(body);
+                const game = this.games.get(gameId);
+                
+                if (!game) {
+                    this.sendJSON(res, { success: false, message: 'Game not found' }, 404);
+                    return;
+                }
+                
+                const hints = game.getMoveHints(count || 3);
+                this.sendJSON(res, { success: true, hints: hints });
+            } catch (error) {
+                this.sendJSON(res, { success: false, message: error.message }, 500);
+            }
+        });
+    }
+    
+    /**
+     * Handle position analysis request
+     */
+    handleAnalyzePosition(req, res) {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const { gameId } = JSON.parse(body);
+                const game = this.games.get(gameId);
+                
+                if (!game) {
+                    this.sendJSON(res, { success: false, message: 'Game not found' }, 404);
+                    return;
+                }
+                
+                const analysis = game.analyzePosition();
+                this.sendJSON(res, { success: true, analysis: analysis });
+            } catch (error) {
+                this.sendJSON(res, { success: false, message: error.message }, 500);
+            }
+        });
+    }
+    
+    /**
+     * Handle save game request
+     */
+    handleSaveGame(req, res) {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const { gameId } = JSON.parse(body);
+                const game = this.games.get(gameId);
+                
+                if (!game) {
+                    this.sendJSON(res, { success: false, message: 'Game not found' }, 404);
+                    return;
+                }
+                
+                const gameData = game.saveGame();
+                this.sendJSON(res, { success: true, gameData: gameData });
+            } catch (error) {
+                this.sendJSON(res, { success: false, message: error.message }, 500);
+            }
+        });
+    }
+    
+    /**
+     * Handle load game request
+     */
+    handleLoadGame(req, res) {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const { gameData } = JSON.parse(body);
+                const game = HexGame.loadGame(gameData);
+                const gameId = `game_${++this.gameCounter}`;
+                this.games.set(gameId, game);
+                
+                this.sendJSON(res, { 
+                    success: true, 
+                    gameId: gameId,
+                    gameState: this.getGameStateData(game),
+                    replayData: game.getReplayData()
+                });
+            } catch (error) {
+                this.sendJSON(res, { success: false, message: error.message }, 500);
+            }
+        });
+    }
+    
+    /**
+     * Handle tournament creation request
+     */
+    handleCreateTournament(req, res) {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const { name, participants, format } = JSON.parse(body);
+                const { Tournament } = require('./Tournament');
+                const tournament = new Tournament(name, participants, format);
+                
+                // Auto-play if all AI participants
+                if (participants.every(p => !p.isHuman)) {
+                    tournament.playAllGames().then(status => {
+                        this.sendJSON(res, { 
+                            success: true, 
+                            tournament: tournament.exportResults()
+                        });
+                    });
+                } else {
+                    this.sendJSON(res, { 
+                        success: true, 
+                        tournament: tournament.exportResults()
+                    });
+                }
+            } catch (error) {
+                this.sendJSON(res, { success: false, message: error.message }, 500);
+            }
+        });
+    }
+    
+    /**
+     * Handle get board shapes request
+     */
+    handleGetBoardShapes(req, res) {
+        const shapes = [
+            { value: 'hexagon', name: 'Standard Hexagon', description: 'Classic Hex board shape' },
+            { value: 'diamond', name: 'Diamond', description: 'Diamond-shaped board' },
+            { value: 'triangle', name: 'Triangle', description: 'Triangular board' },
+            { value: 'parallelogram', name: 'Parallelogram', description: 'Parallelogram-shaped board' }
+        ];
+        
+        this.sendJSON(res, { success: true, shapes: shapes });
     }
 }
 
