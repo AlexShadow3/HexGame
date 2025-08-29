@@ -13,8 +13,9 @@ Hex is a strategic connection game for two players played on a hexagonal grid. T
 
 - ✅ Support for 1-2 players
 - 🤖 AI opponent with multiple difficulty levels
-- 📏 Multiple board sizes (7x7, 11x11, 15x15)
+- 📏 Multiple board sizes (7x7, 9x9, 11x11, 13x13)
 - 🎮 Interactive command-line interface
+- 🌐 **NEW!** Web-based graphical interface
 - 🧪 Comprehensive test suite
 - 📖 Clear game rules and help system
 
@@ -33,10 +34,25 @@ npm install
 
 ## 🎮 How to Play
 
-### Start the Game
+### Command Line Interface (CLI)
 ```bash
 npm start
+# or
+npm run start:cli
 ```
+
+### 🌐 Graphical Interface (GUI) - NEW!
+```bash
+npm run start:gui
+```
+Then open your browser and go to: `http://localhost:3000`
+
+The web interface provides:
+- 🎨 Beautiful visual hexagonal board
+- 🖱️ Click-to-play interaction
+- 📱 Responsive design for mobile and desktop
+- 🎯 Visual game state indicators
+- 🤖 Seamless AI integration
 
 ### Game Modes
 1. **Human vs Computer** - Play against AI opponent
@@ -81,6 +97,11 @@ HexGame/
 │   ├── HexGame.js       # Main game controller
 │   ├── Player.js        # Player classes (Human & AI)
 │   ├── HexGameCLI.js    # Command-line interface
+│   ├── HexGameGUI.js    # Web-based graphical interface (NEW!)
+│   ├── gui/             # Frontend assets (NEW!)
+│   │   ├── index.html   # Main HTML page
+│   │   ├── style.css    # CSS styling
+│   │   └── script.js    # Frontend JavaScript
 │   └── index.js         # Entry point
 ├── tests/
 │   ├── HexBoard.test.js # Board logic tests
@@ -172,6 +193,13 @@ The project follows standard JavaScript conventions with:
 - `getAIMove()` - Get AI's chosen move
 - `reset()` - Reset game to initial state
 
+### HexGameGUI Class (NEW!)
+- `start()` - Start the web server
+- `handleNewGame()` - Create new game session
+- `handleMakeMove()` - Process player moves
+- `handleGetAIMove()` - Get AI move via API
+- `getGameStateData()` - Get complete game state
+
 ### Player Classes
 - `Player` - Human player representation
 - `AIPlayer` - AI player with strategic move selection
@@ -192,7 +220,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🎯 Future Enhancements
 
-- [ ] Web-based UI interface
+- [x] ~~Web-based UI interface~~ ✅ **COMPLETED!**
 - [ ] Online multiplayer support
 - [ ] Advanced AI with minimax algorithm
 - [ ] Game replay and analysis
