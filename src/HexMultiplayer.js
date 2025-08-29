@@ -1,4 +1,6 @@
 const http = require('http');
+const path = require('path');
+const fs = require('fs');
 const socketIo = require('socket.io');
 const { HexGame } = require('./HexGame');
 const { Tournament } = require('./Tournament');
@@ -10,7 +12,9 @@ const { Player, AIPlayer } = require('./Player');
 class HexMultiplayerServer {
     constructor(port = 3001) {
         this.port = port;
-        this.server = http.createServer();
+        this.server = http.createServer((req, res) => {
+            this.handleHttpRequest(req, res);
+        });
         this.io = socketIo(this.server, {
             cors: {
                 origin: "*",
@@ -29,7 +33,59 @@ class HexMultiplayerServer {
     start() {
         this.server.listen(this.port, () => {
             console.log(`🌐 Hex Multiplayer Server started on port ${this.port}`);
-            console.log(`🎮 Players can connect to play online!`);
+            console.log(`🎮 Visit http://localhost:${this.port} to play online!`);
+        });
+    }
+
+    /**
+     * Handle HTTP requests to serve static files
+     */
+    handleHttpRequest(req, res) {
+        let filePath = '.' + req.url;
+        if (filePath === './') {
+            filePath = './multiplayer/index.html';
+        }
+        
+        // Map URLs to actual file paths
+        const publicPath = path.join(__dirname, filePath);
+        
+        // Security check to prevent directory traversal
+        if (!publicPath.startsWith(path.join(__dirname, 'multiplayer'))) {
+            if (req.url === '/') {
+                filePath = './multiplayer/index.html';
+            } else {
+                res.writeHead(404);
+                res.end('Not found');
+                return;
+            }
+        }
+        
+        const actualPath = path.join(__dirname, filePath);
+        
+        fs.readFile(actualPath, (err, content) => {
+            if (err) {
+                if (err.code === 'ENOENT') {
+                    res.writeHead(404);
+                    res.end('File not found');
+                } else {
+                    res.writeHead(500);
+                    res.end('Server error');
+                }
+                return;
+            }
+            
+            // Set content type based on file extension
+            const ext = path.extname(actualPath).toLowerCase();
+            const mimeTypes = {
+                '.html': 'text/html',
+                '.js': 'text/javascript',
+                '.css': 'text/css',
+                '.json': 'application/json'
+            };
+            
+            const contentType = mimeTypes[ext] || 'text/plain';
+            res.writeHead(200, { 'Content-Type': contentType });
+            res.end(content);
         });
     }
 

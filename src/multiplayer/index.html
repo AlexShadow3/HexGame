@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔷 Hex Game - Multiplayer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .screen {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin: 0 auto;
+            max-width: 800px;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .menu-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .option-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .option-card h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .option-card p {
+            color: #6c757d;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-1px);
+        }
+
+        .btn.secondary {
+            background: #6c757d;
+        }
+
+        .btn.secondary:hover {
+            background: #5a6268;
+        }
+
+        .game-board {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .hex-board {
+            display: grid;
+            gap: 2px;
+            transform: rotate(-30deg);
+        }
+
+        .hex-cell {
+            width: 30px;
+            height: 30px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .hex-cell:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .hex-cell.player1 {
+            background: #ff6b6b;
+            color: white;
+            border-color: #ff5252;
+        }
+
+        .hex-cell.player2 {
+            background: #4ecdc4;
+            color: white;
+            border-color: #26a69a;
+        }
+
+        .game-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .players {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .player {
+            text-align: center;
+        }
+
+        .player-symbol {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            line-height: 40px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 5px;
+        }
+
+        .player1 .player-symbol {
+            background: #ff6b6b;
+        }
+
+        .player2 .player-symbol {
+            background: #4ecdc4;
+        }
+
+        .current-turn {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .status-message {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .queue-status {
+            background: #fff3e0;
+            border: 1px solid #ffcc02;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .error-message {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            color: #d32f2f;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .screen {
+                padding: 20px;
+            }
+            
+            .menu-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .players {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔷 HEX GAME</h1>
+            <p>Multiplayer Online Experience</p>
+        </div>
+
+        <!-- Main Menu Screen -->
+        <div id="menu-screen" class="screen active">
+            <h2 style="text-align: center; margin-bottom: 30px;">Choose Game Mode</h2>
+            
+            <div class="menu-options">
+                <div class="option-card" onclick="showQuickMatchScreen()">
+                    <h3>🎯 Quick Match</h3>
+                    <p>Find an opponent automatically and start playing immediately</p>
+                </div>
+                
+                <div class="option-card" onclick="showCreateGameScreen()">
+                    <h3>🎮 Create Game</h3>
+                    <p>Create a custom game with your preferred settings</p>
+                </div>
+                
+                <div class="option-card" onclick="showJoinGameScreen()">
+                    <h3>👥 Join Game</h3>
+                    <p>Join an existing game or watch as a spectator</p>
+                </div>
+                
+                <div class="option-card" onclick="showPracticeScreen()">
+                    <h3>🤖 Practice vs AI</h3>
+                    <p>Practice your skills against the computer</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Match Screen -->
+        <div id="quickmatch-screen" class="screen">
+            <h2>Quick Match</h2>
+            
+            <div class="form-group">
+                <label for="player-name">Your Name:</label>
+                <input type="text" id="player-name" placeholder="Enter your name" maxlength="20">
+            </div>
+            
+            <div class="form-group">
+                <label for="board-size">Board Size:</label>
+                <select id="board-size">
+                    <option value="7">7x7 (Quick)</option>
+                    <option value="9">9x9 (Medium)</option>
+                    <option value="11" selected>11x11 (Standard)</option>
+                    <option value="13">13x13 (Large)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="board-shape">Board Shape:</label>
+                <select id="board-shape">
+                    <option value="hexagon" selected>Hexagon</option>
+                    <option value="diamond">Diamond</option>
+                    <option value="triangle">Triangle</option>
+                    <option value="parallelogram">Parallelogram</option>
+                </select>
+            </div>
+            
+            <button class="btn" onclick="joinQueue()">Find Opponent</button>
+            <button class="btn secondary" onclick="showMainMenu()">Back</button>
+            
+            <div id="queue-status" class="queue-status hidden">
+                <p>Looking for an opponent...</p>
+                <p>Position in queue: <span id="queue-position">1</span></p>
+                <button class="btn secondary" onclick="leaveQueue()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Create Game Screen -->
+        <div id="creategame-screen" class="screen">
+            <h2>Create Custom Game</h2>
+            
+            <div class="form-group">
+                <label for="create-player-name">Your Name:</label>
+                <input type="text" id="create-player-name" placeholder="Enter your name" maxlength="20">
+            </div>
+            
+            <div class="form-group">
+                <label for="create-game-mode">Game Mode:</label>
+                <select id="create-game-mode">
+                    <option value="human-vs-ai">Human vs AI</option>
+                    <option value="human-vs-ai-hard">Human vs AI (Hard)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="create-board-size">Board Size:</label>
+                <select id="create-board-size">
+                    <option value="7">7x7 (Quick)</option>
+                    <option value="9">9x9 (Medium)</option>
+                    <option value="11" selected>11x11 (Standard)</option>
+                    <option value="13">13x13 (Large)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="create-board-shape">Board Shape:</label>
+                <select id="create-board-shape">
+                    <option value="hexagon" selected>Hexagon</option>
+                    <option value="diamond">Diamond</option>
+                    <option value="triangle">Triangle</option>
+                    <option value="parallelogram">Parallelogram</option>
+                </select>
+            </div>
+            
+            <button class="btn" onclick="createGame()">Create Game</button>
+            <button class="btn secondary" onclick="showMainMenu()">Back</button>
+        </div>
+
+        <!-- Join Game Screen -->
+        <div id="joingame-screen" class="screen">
+            <h2>Join Game</h2>
+            
+            <div class="form-group">
+                <label for="join-player-name">Your Name:</label>
+                <input type="text" id="join-player-name" placeholder="Enter your name" maxlength="20">
+            </div>
+            
+            <div class="form-group">
+                <label for="game-id">Game ID:</label>
+                <input type="text" id="game-id" placeholder="Enter game ID">
+            </div>
+            
+            <button class="btn" onclick="joinGame()">Join Game</button>
+            <button class="btn secondary" onclick="showMainMenu()">Back</button>
+        </div>
+
+        <!-- Practice Screen -->
+        <div id="practice-screen" class="screen">
+            <h2>Practice vs AI</h2>
+            
+            <div class="form-group">
+                <label for="practice-player-name">Your Name:</label>
+                <input type="text" id="practice-player-name" placeholder="Enter your name" maxlength="20">
+            </div>
+            
+            <div class="form-group">
+                <label for="ai-difficulty">AI Difficulty:</label>
+                <select id="ai-difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="practice-board-size">Board Size:</label>
+                <select id="practice-board-size">
+                    <option value="7">7x7 (Quick)</option>
+                    <option value="9">9x9 (Medium)</option>
+                    <option value="11" selected>11x11 (Standard)</option>
+                    <option value="13">13x13 (Large)</option>
+                </select>
+            </div>
+            
+            <button class="btn" onclick="startPractice()">Start Practice</button>
+            <button class="btn secondary" onclick="showMainMenu()">Back</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="game-info">
+                <div class="players">
+                    <div class="player">
+                        <div class="player-symbol">X</div>
+                        <div class="player-name" id="player1-name">Player 1</div>
+                        <div class="player-goal">TOP ↔ BOTTOM</div>
+                    </div>
+                    <div class="current-turn">
+                        <span id="current-player">Player 1</span>'s turn
+                    </div>
+                    <div class="player">
+                        <div class="player-symbol">O</div>
+                        <div class="player-name" id="player2-name">Player 2</div>
+                        <div class="player-goal">LEFT ↔ RIGHT</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-board">
+                <div id="hex-board"></div>
+            </div>
+
+            <div class="status-message" id="status-message">
+                Click on an empty cell to make your move
+            </div>
+
+            <div style="text-align: center;">
+                <button class="btn secondary" onclick="showMainMenu()">Back to Menu</button>
+                <button class="btn" onclick="getHints()">Get Hints</button>
+                <button class="btn" onclick="analyzePosition()">Analyze Position</button>
+            </div>
+        </div>
+
+        <!-- Error messages -->
+        <div id="error-message" class="error-message hidden">
+            <p id="error-text"></p>
+        </div>
+    </div>
+
+    <!-- Socket.io client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="multiplayer.js"></script>
+</body>
+</html>
