@@ -4,6 +4,7 @@ let currentGame = null;
 let currentGameId = null;
 let isMyTurn = false;
 let myPlayerNumber = null;
+let waitingGameId = null;
 
 // Initialize socket connection
 function initSocket() {
@@ -34,6 +35,14 @@ function initSocket() {
     
     socket.on('game-created', (data) => {
         handleGameCreated(data);
+    });
+    
+    socket.on('lobby-created', (data) => {
+        handleLobbyCreated(data);
+    });
+    
+    socket.on('player-joined-lobby', (data) => {
+        handlePlayerJoinedLobby(data);
     });
     
     socket.on('joined-game', (data) => {
@@ -145,13 +154,24 @@ function createGame() {
         return;
     }
     
-    socket.emit('create-game', {
-        playerName: playerName,
-        gameMode: gameMode,
-        boardSize: boardSize,
-        boardShape: boardShape,
-        aiDifficulty: gameMode.includes('hard') ? 'hard' : 'medium'
-    });
+    if (gameMode === 'human-vs-human') {
+        // Create multiplayer lobby
+        socket.emit('create-lobby', {
+            playerName: playerName,
+            boardSize: boardSize,
+            boardShape: boardShape
+        });
+    } else {
+        // Create AI game
+        const aiDifficulty = document.getElementById('create-ai-difficulty').value;
+        socket.emit('create-game', {
+            playerName: playerName,
+            gameMode: gameMode,
+            boardSize: boardSize,
+            boardShape: boardShape,
+            aiDifficulty: gameMode.includes('hard') ? 'hard' : aiDifficulty
+        });
+    }
 }
 
 function joinGame() {
@@ -222,13 +242,22 @@ function handleGameStarted(data) {
     currentGameId = data.gameId;
     currentGame = data.gameState;
     
-    // Find my player number
-    myPlayerNumber = 1; // Default to player 1 for now
+    // Determine my player number based on socket ID
+    if (data.playerIds) {
+        const mySocketId = socket.id;
+        myPlayerNumber = data.playerIds.indexOf(mySocketId) + 1;
+    } else {
+        myPlayerNumber = 1; // Default for AI games
+    }
     
     document.getElementById('player1-name').textContent = data.players[0].name;
     document.getElementById('player2-name').textContent = data.players[1].name;
     
     isMyTurn = data.gameState.currentPlayer === myPlayerNumber;
+    
+    // Hide any waiting displays
+    document.getElementById('game-created-status').classList.add('hidden');
+    document.getElementById('queue-status').classList.add('hidden');
     
     showGameScreen();
     renderBoard(data.gameState);
@@ -379,7 +408,64 @@ function showAnalysis(analysis) {
     alert(message);
 }
 
+function handleLobbyCreated(data) {
+    waitingGameId = data.gameId;
+    
+    document.getElementById('created-game-id').textContent = data.gameId;
+    document.getElementById('game-created-status').classList.remove('hidden');
+    
+    showStatus(`Lobby created! Share the Game ID: ${data.gameId}`);
+}
+
+function handlePlayerJoinedLobby(data) {
+    if (waitingGameId === data.gameId) {
+        document.getElementById('waiting-message').textContent = `${data.playerName} joined! Starting game...`;
+    }
+}
+
+function copyGameId() {
+    const gameId = document.getElementById('created-game-id').textContent;
+    navigator.clipboard.writeText(gameId).then(() => {
+        showStatus('Game ID copied to clipboard!');
+    }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = gameId;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showStatus('Game ID copied to clipboard!');
+    });
+}
+
+function cancelWaitingGame() {
+    if (waitingGameId) {
+        socket.emit('cancel-lobby', { gameId: waitingGameId });
+        waitingGameId = null;
+    }
+    document.getElementById('game-created-status').classList.add('hidden');
+    showMainMenu();
+}
+
+function toggleAIDifficulty() {
+    const gameMode = document.getElementById('create-game-mode').value;
+    const aiGroup = document.getElementById('ai-difficulty-group');
+    
+    if (gameMode === 'human-vs-human') {
+        aiGroup.style.display = 'none';
+    } else {
+        aiGroup.style.display = 'block';
+    }
+}
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', () => {
     showMainMenu();
+    // Initialize AI difficulty toggle
+    setTimeout(() => {
+        if (document.getElementById('create-game-mode')) {
+            toggleAIDifficulty();
+        }
+    }, 100);
 });

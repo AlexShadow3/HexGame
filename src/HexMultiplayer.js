@@ -24,6 +24,7 @@ class HexMultiplayerServer {
         
         this.activeGames = new Map();
         this.waitingPlayers = [];
+        this.lobbies = new Map(); // New: track waiting lobbies
         this.tournaments = new Map();
         this.playerSessions = new Map();
         
@@ -99,7 +100,9 @@ class HexMultiplayerServer {
             socket.on('leave-queue', () => this.handleLeaveQueue(socket));
             socket.on('make-move', (data) => this.handleMakeMove(socket, data));
             socket.on('create-game', (data) => this.handleCreateGame(socket, data));
+            socket.on('create-lobby', (data) => this.handleCreateLobby(socket, data));
             socket.on('join-game', (data) => this.handleJoinGame(socket, data));
+            socket.on('cancel-lobby', (data) => this.handleCancelLobby(socket, data));
             socket.on('get-hints', (data) => this.handleGetHints(socket, data));
             socket.on('analyze-position', (data) => this.handleAnalyzePosition(socket, data));
             socket.on('save-game', (data) => this.handleSaveGame(socket, data));
@@ -168,6 +171,46 @@ class HexMultiplayerServer {
     }
 
     /**
+     * Create a multiplayer game from a lobby
+     */
+    createMultiplayerGameFromLobby(lobby, player1, player2) {
+        const gameId = lobby.id; // Use the same ID as the lobby
+        const game = new HexGame(lobby.settings.boardSize, 'online-multiplayer', lobby.settings.boardShape);
+        
+        // Set up players
+        game.players = [
+            new Player(1, player1.name, true),
+            new Player(2, player2.name, true)
+        ];
+        
+        const gameSession = {
+            game: game,
+            players: [player1, player2],
+            spectators: [],
+            createdAt: Date.now()
+        };
+        
+        this.activeGames.set(gameId, gameSession);
+        
+        // Both players should already be in the room from lobby
+        
+        // Notify players with their IDs
+        this.io.to(gameId).emit('game-started', {
+            gameId: gameId,
+            players: [
+                { name: player1.name, number: 1 },
+                { name: player2.name, number: 2 }
+            ],
+            playerIds: [player1.id, player2.id], // Include socket IDs for client identification
+            gameState: this.getGameState(game),
+            boardSize: lobby.settings.boardSize,
+            boardShape: lobby.settings.boardShape
+        });
+        
+        console.log(`Game ${gameId} started: ${player1.name} vs ${player2.name}`);
+    }
+
+    /**
      * Create a multiplayer game between two players
      */
     createMultiplayerGame(player1, player2) {
@@ -193,13 +236,14 @@ class HexMultiplayerServer {
         player1.socket.join(gameId);
         player2.socket.join(gameId);
         
-        // Notify players
+        // Notify players with their IDs
         this.io.to(gameId).emit('game-started', {
             gameId: gameId,
             players: [
                 { name: player1.name, number: 1 },
                 { name: player2.name, number: 2 }
             ],
+            playerIds: [player1.id, player2.id], // Include socket IDs for client identification
             gameState: this.getGameState(game),
             boardSize: player1.boardSize,
             boardShape: player1.boardShape
@@ -281,8 +325,50 @@ class HexMultiplayerServer {
     }
 
     /**
-     * Handle creating a custom game
+     * Handle creating a lobby for human vs human games
      */
+    handleCreateLobby(socket, data) {
+        const { playerName, boardSize = 11, boardShape = 'hexagon' } = data;
+        
+        const lobbyId = this.generateGameId();
+        const lobby = {
+            id: lobbyId,
+            creator: {
+                socket: socket,
+                id: socket.id,
+                name: playerName
+            },
+            settings: {
+                boardSize: boardSize,
+                boardShape: boardShape
+            },
+            createdAt: Date.now()
+        };
+        
+        this.lobbies.set(lobbyId, lobby);
+        socket.join(lobbyId);
+        
+        socket.emit('lobby-created', {
+            gameId: lobbyId,
+            settings: lobby.settings
+        });
+        
+        console.log(`Lobby ${lobbyId} created by ${playerName}`);
+    }
+
+    /**
+     * Handle canceling a lobby
+     */
+    handleCancelLobby(socket, data) {
+        const { gameId } = data;
+        const lobby = this.lobbies.get(gameId);
+        
+        if (lobby && lobby.creator.id === socket.id) {
+            this.lobbies.delete(gameId);
+            socket.leave(gameId);
+            console.log(`Lobby ${gameId} cancelled`);
+        }
+    }
     handleCreateGame(socket, data) {
         const { playerName, boardSize = 11, boardShape = 'hexagon', gameMode = 'human-vs-ai', aiDifficulty = 'medium' } = data;
         
@@ -319,12 +405,20 @@ class HexMultiplayerServer {
     }
 
     /**
-     * Handle joining an existing game as spectator
+     * Handle joining an existing game or lobby
      */
     handleJoinGame(socket, data) {
         const { gameId, playerName } = data;
-        const gameSession = this.activeGames.get(gameId);
         
+        // First check if it's a lobby waiting for players
+        const lobby = this.lobbies.get(gameId);
+        if (lobby) {
+            this.joinLobby(socket, gameId, playerName);
+            return;
+        }
+        
+        // Otherwise, join as spectator to active game
+        const gameSession = this.activeGames.get(gameId);
         if (!gameSession) {
             socket.emit('error', { message: 'Game not found' });
             return;
@@ -344,6 +438,41 @@ class HexMultiplayerServer {
             gameState: this.getGameState(gameSession.game),
             isSpectator: true
         });
+    }
+
+    /**
+     * Handle joining a lobby and starting the game
+     */
+    joinLobby(socket, lobbyId, playerName) {
+        const lobby = this.lobbies.get(lobbyId);
+        if (!lobby) {
+            socket.emit('error', { message: 'Lobby not found' });
+            return;
+        }
+        
+        // Make sure the joining player is in the room
+        socket.join(lobbyId);
+        
+        // Notify lobby creator that someone joined
+        lobby.creator.socket.emit('player-joined-lobby', {
+            gameId: lobbyId,
+            playerName: playerName
+        });
+        
+        // Create the multiplayer game
+        const player1 = lobby.creator;
+        const player2 = {
+            socket: socket,
+            id: socket.id,
+            name: playerName
+        };
+        
+        this.createMultiplayerGameFromLobby(lobby, player1, player2);
+        
+        // Remove lobby
+        this.lobbies.delete(lobbyId);
+        
+        console.log(`Player ${playerName} joined lobby ${lobbyId}, starting game`);
     }
 
     /**
@@ -470,6 +599,14 @@ class HexMultiplayerServer {
         // Remove from waiting queue
         this.handleLeaveQueue(socket);
         
+        // Clean up lobbies
+        for (const [lobbyId, lobby] of this.lobbies) {
+            if (lobby.creator.id === socket.id) {
+                this.lobbies.delete(lobbyId);
+                console.log(`Lobby ${lobbyId} deleted due to creator disconnect`);
+            }
+        }
+        
         // Handle active games
         for (const [gameId, gameSession] of this.activeGames) {
             const playerIndex = gameSession.players.findIndex(p => p.id === socket.id);
@@ -509,6 +646,7 @@ class HexMultiplayerServer {
         return {
             activeGames: this.activeGames.size,
             waitingPlayers: this.waitingPlayers.length,
+            activeLobbies: this.lobbies.size,
             tournaments: this.tournaments.size,
             totalConnections: this.playerSessions.size
         };

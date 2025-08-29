@@ -256,6 +256,33 @@
             display: none !important;
         }
 
+        .game-id-display {
+            background: #e8f5e8;
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+            font-family: monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .copy-button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .copy-button:hover {
+            background: #45a049;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -364,9 +391,19 @@
             
             <div class="form-group">
                 <label for="create-game-mode">Game Mode:</label>
-                <select id="create-game-mode">
+                <select id="create-game-mode" onchange="toggleAIDifficulty()">
+                    <option value="human-vs-human">Human vs Human (Online)</option>
                     <option value="human-vs-ai">Human vs AI</option>
                     <option value="human-vs-ai-hard">Human vs AI (Hard)</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="ai-difficulty-group">
+                <label for="create-ai-difficulty">AI Difficulty:</label>
+                <select id="create-ai-difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
                 </select>
             </div>
             
@@ -392,6 +429,15 @@
             
             <button class="btn" onclick="createGame()">Create Game</button>
             <button class="btn secondary" onclick="showMainMenu()">Back</button>
+            
+            <div id="game-created-status" class="game-id-display hidden">
+                <p>🎮 Game Created Successfully!</p>
+                <p>Game ID: <span id="created-game-id"></span>
+                    <button class="copy-button" onclick="copyGameId()">Copy ID</button>
+                </p>
+                <p id="waiting-message">Waiting for opponent to join...</p>
+                <button class="btn secondary" onclick="cancelWaitingGame()">Cancel Game</button>
+            </div>
         </div>
 
         <!-- Join Game Screen -->
