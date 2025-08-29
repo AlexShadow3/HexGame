@@ -1,0 +1,29 @@
+{
+  "name": "hexgame",
+  "version": "1.0.0",
+  "description": "A classic Hex board game implementation for 1-2 players",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": ["hex", "game", "board-game", "strategy", "ai"],
+  "author": "AlexShadow3",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.0.0"
+  },
+  "dependencies": {
+    "readline-sync": "^1.4.10"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/index.js"
+    ]
+  }
+}
