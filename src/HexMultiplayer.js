@@ -41,26 +41,28 @@ class HexMultiplayerServer {
      * Handle HTTP requests to serve static files
      */
     handleHttpRequest(req, res) {
-        let filePath = '.' + req.url;
-        if (filePath === './') {
-            filePath = './multiplayer/index.html';
-        }
+        let filePath;
         
         // Map URLs to actual file paths
-        const publicPath = path.join(__dirname, filePath);
-        
-        // Security check to prevent directory traversal
-        if (!publicPath.startsWith(path.join(__dirname, 'multiplayer'))) {
-            if (req.url === '/') {
-                filePath = './multiplayer/index.html';
-            } else {
-                res.writeHead(404);
-                res.end('Not found');
-                return;
-            }
+        if (req.url === '/' || req.url === '/index.html') {
+            filePath = './multiplayer/index.html';
+        } else if (req.url === '/multiplayer.js') {
+            filePath = './multiplayer/multiplayer.js';
+        } else if (req.url.startsWith('/multiplayer/')) {
+            filePath = '.' + req.url;
+        } else {
+            // Default to serve from multiplayer directory
+            filePath = './multiplayer' + req.url;
         }
         
         const actualPath = path.join(__dirname, filePath);
+        
+        // Security check to prevent directory traversal
+        if (!actualPath.startsWith(path.join(__dirname, 'multiplayer'))) {
+            res.writeHead(404);
+            res.end('Not found');
+            return;
+        }
         
         fs.readFile(actualPath, (err, content) => {
             if (err) {
